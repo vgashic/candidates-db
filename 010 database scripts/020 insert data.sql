@@ -112,11 +112,11 @@ begin
   set @email = lower(@name) + '.' + lower(@surname) + '@' + (select top 1 val_string from dbo.admin_settings where code = 'Company.EmailDomain')
   set @start_date = (select top 1 val_datetime from dbo.admin_settings where code = 'Company.StartDate')
   set @max_rnd_days = datediff(day, @start_date, getdate())
-  set @active_from = dateadd(day, dbo.f_random_num(@max_rnd_days), @start_date)
-  set @active_to = dateadd(day, dbo.f_random_num(@max_rnd_days), @active_from)
+  set @active_from = dateadd(day, dbo.fn_random_num(@max_rnd_days), @start_date)
+  set @active_to = dateadd(day, dbo.fn_random_num(@max_rnd_days), @active_from)
 
   while @active_to >= getdate()
-    set @active_to = dateadd(day, dbo.f_random_num(@max_rnd_days), @active_from)
+    set @active_to = dateadd(day, dbo.fn_random_num(@max_rnd_days), @active_from)
 
   insert into dbo.employees
     (name, username, email, active_from, active_to)
@@ -12103,7 +12103,7 @@ begin
   set @co_name = (select top 1 company from dbo._rnd_companies order by newid() desc)
   set @registration_number = dbo.fn_random_chars(8, 0, 0, 1)
   set @tax_number = dbo.fn_random_chars(9, 0, 0, 1)
-  set @street = (select top 1 street from _rnd_streets order by newid() desc) + ' ' + cast(cast(dbo.fn_random_num(350)) as varchar(10))
+  set @street = (select top 1 street from _rnd_streets order by newid() desc) + ' ' + cast(dbo.fn_random_num(350) as varchar(10))
   set @postal_code = dbo.fn_random_chars(5, 0, 0, 1)
 
   if (dbo.fn_random_num(20)) < 17
@@ -12163,8 +12163,8 @@ begin
 
   if (dbo.fn_random_num(20)) < 14
     set @email = replace(lower(@p_fullname), ' ', '.')
-        + '@' + dbo.fn_random_chars(dbo.fn_random_chars(12, 1, 0, 0), 1, 0, 0)
-        + '.' + dbo.fn_random_chars(dbo.fn_random_chars(2, 1, 0, 0), 1, 0, 0) + dbo.fn_random_chars(2, 1, 0, 0)
+        + '@' + dbo.fn_random_chars(dbo.fn_random_num(12), 1, 0, 0)
+        + '.' + dbo.fn_random_chars(dbo.fn_random_num(2), 1, 0, 0) + dbo.fn_random_chars(2, 1, 0, 0)
   else
     set @email = null
 
@@ -12307,8 +12307,8 @@ begin
   set @interest_rate = (select cast(dbo.fn_random_num(10) as decimal(6,4)))
 
   set @entered_year = (select year(@start_date) + dbo.fn_random_num(@year_cnt))
-  set @entered_month = dbo.fn_random_num(12)
-  set @entered_day = dbo.fn_random_num(27)
+  set @entered_month = dbo.fn_random_num(11) + 1
+  set @entered_day = dbo.fn_random_num(26) + 1
   set @entered_date = cast(format(@entered_year, '0000') + format(@entered_month, '00') + format(@entered_day, '00') as date)
   set @contract_number = format(@id, '000000') + '/' + format(@entered_date, 'yy')
   set @description = 'Contract #' + @contract_number
@@ -12321,7 +12321,7 @@ begin
   set @employee_id = (select top 1 employee_id from dbo.employees order by newid())
   set @activity_status = iif(@activation_date is not null, 'active', 'inactive')
   set @activity_status = iif(dateadd(month, @duration, @activation_date) <= cast(getdate() as date), 'closed', @activity_status)
-  set @tax_rate = iif(selectdbo.fn_random_num(10) < 1, 10, 20)
+  set @tax_rate = iif(dbo.fn_random_num(10) < 1, 10, 20)
 
   insert into #contracts
     (contract_number, customer_id, description, contract_value, tax_value, interest_rate, currency_code, tax_rate, activity_status, entered_date, activation_date, duration, employee_id, ts)
