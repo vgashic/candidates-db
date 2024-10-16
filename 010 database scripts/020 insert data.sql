@@ -3,6 +3,8 @@ go
 
 -- #region delete
 
+raiserror('Processing delete', 0, 1) with nowait
+
 delete from dbo.admin_settings
 delete from dbo.exchange_rates
 delete from dbo.employees_departments
@@ -20,6 +22,8 @@ delete from dbo.countries
 
 
 --#region admin_settings
+
+raiserror('Processing admin_settings', 0, 1) with nowait
 
 delete from dbo.admin_settings
 go
@@ -72,6 +76,8 @@ go
 
 --#region employees
 
+raiserror('Processing employees', 0, 1) with nowait
+
 delete from dbo.employees
 go
 
@@ -106,11 +112,11 @@ begin
   set @email = lower(@name) + '.' + lower(@surname) + '@' + (select top 1 val_string from dbo.admin_settings where code = 'Company.EmailDomain')
   set @start_date = (select top 1 val_datetime from dbo.admin_settings where code = 'Company.StartDate')
   set @max_rnd_days = datediff(day, @start_date, getdate())
-  set @active_from = dateadd(day, rand() * @max_rnd_days, @start_date)
-  set @active_to = dateadd(day, rand() * @max_rnd_days, @active_from)
+  set @active_from = dateadd(day, dbo.f_random_num(@max_rnd_days), @start_date)
+  set @active_to = dateadd(day, dbo.f_random_num(@max_rnd_days), @active_from)
 
   while @active_to >= getdate()
-    set @active_to = dateadd(day, rand() * @max_rnd_days, @active_from)
+    set @active_to = dateadd(day, dbo.f_random_num(@max_rnd_days), @active_from)
 
   insert into dbo.employees
     (name, username, email, active_from, active_to)
@@ -145,6 +151,8 @@ select * from dbo.employees where active_to is null
 
 
 --#region departments
+
+raiserror('Processing departments', 0, 1) with nowait
 
 if object_id('tempdb..#depts') is not null drop table #depts
 go
@@ -289,9 +297,9 @@ fetch next from cur into @ord, @id
 while @@fetch_status = 0
 begin
   if @ord > @emp_start_cnt
-    set @active_from = dateadd(day, rand() * @days_from_start * 0.9, @start_date)
+    set @active_from = dateadd(day, dbo.fn_random_num(@days_from_start) * 0.9, @start_date)
 
-  set @active_to = dateadd(day, rand() * @days_from_start * 1.5, @active_from)
+  set @active_to = dateadd(day, dbo.fn_random_num(@days_from_start) * 1.5, @active_from)
   set @active_to = iif(@active_to >= getdate(), null, @active_to)
 
   update ed set
@@ -329,6 +337,8 @@ select * from employees e where e.employee_id not in (select distinct employee_i
 
 
 -- #region countries
+
+raiserror('Processing countries', 0, 1) with nowait
 
 delete from dbo.countries
 go
@@ -598,6 +608,8 @@ go
 
 -- #region currencies
 
+raiserror('Processing currencies', 0, 1) with nowait
+
 delete from dbo.currencies
 go
 
@@ -626,10 +638,14 @@ go
 
 --#region exchange_rates
 
+raiserror('Processing exchange_rates', 0, 1) with nowait
+
 delete from dbo.exchange_rates
 go
 
 --#region EUR
+
+raiserror('Processing EUR', 0, 1) with nowait
 
 insert into dbo.exchange_rates
   (currency_from, currency_to, exchange_rate, exchange_rate_date)
@@ -4380,6 +4396,8 @@ go
 
 --#region USD
 
+raiserror('Processing USD', 0, 1) with nowait
+
 insert into dbo.exchange_rates
   (currency_from, currency_to, exchange_rate, exchange_rate_date)
 select
@@ -8128,6 +8146,8 @@ go
 --#endregion USD
 
 --#region CHF
+
+raiserror('Processing CHF', 0, 1) with nowait
 
 insert into dbo.exchange_rates
   (currency_from, currency_to, exchange_rate, exchange_rate_date)
@@ -11884,6 +11904,8 @@ go
 
 --#region customers
 
+raiserror('Processing customers', 0, 1) with nowait
+
 delete from dbo.customers
 go
 
@@ -11893,7 +11915,18 @@ else
   dbcc checkident(customers, reseed, 0)
 go
 
-insert into dbo.customers
+if object_id('tempdb..#customers') is not null drop table #customers
+go
+
+select top 0
+  short_name, full_name, registration_number, tax_number, street, postal_code, country_code, email, customer_type, inactive
+into #customers
+from dbo.customers
+go
+
+
+
+insert into #customers
   (short_name, full_name, registration_number, tax_number, street, postal_code, country_code, email, customer_type, inactive)
 select
   c.short_name,
@@ -12049,6 +12082,8 @@ go
 
 --#region add companies
 
+raiserror('Processing add companies', 0, 1) with nowait
+
 declare
   @co_cnt_ex int = (select count(0) from dbo.customers where customer_type = 'company'),
   @co_cnt int = (select val_int from dbo.admin_settings where code = 'Db.Seed.Customers.TotalCompaniesCount'),
@@ -12066,38 +12101,117 @@ set @co_cnt = @co_cnt - @co_cnt_ex
 while @co_cnt > 0
 begin
   set @co_name = (select top 1 company from dbo._rnd_companies order by newid() desc)
-  set @registration_number = right(str(1000000000 + rand()*1000000000), 8)
-  set @tax_number = left(str(1000000000 + rand()*1000000000), 9)
-  set @street = (select top 1 street from _rnd_streets order by newid() desc) + ' ' + cast(cast(rand() * 350 as int) as varchar(10))
-  set @postal_code = right(str(1000000000 + rand()*1000000000), 5)
+  set @registration_number = dbo.fn_random_chars(8, 0, 0, 1)
+  set @tax_number = dbo.fn_random_chars(9, 0, 0, 1)
+  set @street = (select top 1 street from _rnd_streets order by newid() desc) + ' ' + cast(cast(dbo.fn_random_num(350)) as varchar(10))
+  set @postal_code = dbo.fn_random_chars(5, 0, 0, 1)
 
-  if (select rand() * 20) < 17
+  if (dbo.fn_random_num(20)) < 17
     set @email = 'info@' + lower((select top 1 value from string_split(@co_name, ' '))) + '.com'
   else
     set @email = null
 
-  if (select rand() * 20) > 17
+  if (dbo.fn_random_num(20)) > 17
     set @country_code = (select top 1 country_code from countries order by newid())
   else
     set @country_code = (select val_string from dbo.admin_settings where code = 'Company.CountryCode')
 
-  if (select rand() * 20) > 18
+  if (dbo.fn_random_num(20)) > 18
     set @inactive = 1
   else
     set @inactive = 0
 
-  insert into dbo.customers
+  insert into #customers
     (short_name, full_name, registration_number, tax_number, street, postal_code, country_code, email, customer_type, inactive)
   values
     (@co_name, @co_name, @registration_number, @tax_number, @street, @postal_code, @country_code, @email, 'company', @inactive)
 
   set @co_cnt = @co_cnt - 1
 end
+go
 
 --#endregion add companies
 
 
+--#region add persons
+
+raiserror('Processing add persons', 0, 1) with nowait
+
+declare
+  @p_cnt_ex int = (select count(0) from dbo.customers where customer_type = 'person'),
+  @p_cnt int = (select val_int from dbo.admin_settings where code = 'Db.Seed.Customers.TotalPersonsCount'),
+  @p_name varchar(500),
+  @p_surname varchar(500),
+  @p_fullname varchar(1000),
+  @registration_number varchar(20),
+  @street varchar(200),
+  @postal_code varchar(10),
+  @country_code varchar(10),
+  @email varchar(500),
+  @inactive bit = 0
+
+set @p_cnt = @p_cnt - @p_cnt_ex
+
+while @p_cnt > 0
+begin
+  set @p_name = (select top 1 name from dbo._rnd_names order by newid() desc)
+  set @p_surname = (select top 1 surname from dbo._rnd_surnames order by newid() desc)
+  set @p_fullname = @p_name + ' ' + @p_surname
+  set @registration_number = dbo.fn_random_chars(13, 0, 0, 1)
+  set @street = (select top 1 street from _rnd_streets order by newid() desc) + ' ' + cast(cast(rand() * 350 as int) as varchar(10))
+  set @postal_code = dbo.fn_random_chars(5, 0, 0, 1)
+
+  if (dbo.fn_random_num(20)) < 14
+    set @email = replace(lower(@p_fullname), ' ', '.')
+        + '@' + dbo.fn_random_chars(dbo.fn_random_chars(12, 1, 0, 0), 1, 0, 0)
+        + '.' + dbo.fn_random_chars(dbo.fn_random_chars(2, 1, 0, 0), 1, 0, 0) + dbo.fn_random_chars(2, 1, 0, 0)
+  else
+    set @email = null
+
+  if (dbo.fn_random_num(20)) > 15
+    set @country_code = (select top 1 country_code from countries order by newid())
+  else
+    set @country_code = (select val_string from dbo.admin_settings where code = 'Company.CountryCode')
+
+  if (dbo.fn_random_num(20)) > 18
+    set @inactive = 1
+  else
+    set @inactive = 0
+
+  insert into #customers
+    (short_name, full_name, registration_number, tax_number, street, postal_code, country_code, email, customer_type, inactive)
+  values
+    (@p_fullname, @p_fullname, @registration_number, null, @street, @postal_code, @country_code, @email, 'person', @inactive)
+
+  set @p_cnt = @p_cnt - 1
+end
+go
+
+--select * from dbo.admin_settings
+
+--#endregion add persons
+
+
+insert into dbo.customers
+  (short_name, full_name, registration_number, tax_number, street, postal_code, country_code, email, customer_type, inactive)
+select
+  short_name,
+  full_name,
+  registration_number,
+  tax_number,
+  street,
+  postal_code,
+  country_code,
+  email,
+  customer_type,
+  inactive
+from #customers
+order by newid() desc
+
+
 --#region assigned employees
+
+raiserror('Processing assigned employees', 0, 1) with nowait
 
 update dbo.customers set
   tax_number = nullif(tax_number, '')
@@ -12111,7 +12225,7 @@ declare
 
 while @ac < @cnt * .80 or @ac > @cnt
 begin
-  set @ac = rand() * @cnt * 2
+  set @ac = dbo.fn_random_num(@cnt * 2)
 end
 
 while @ac > 0
@@ -12138,6 +12252,8 @@ go
 
 
 --#region contracts
+
+raiserror('Processing contracts', 0, 1) with nowait
 
 delete from dbo.contracts
 go
@@ -12187,25 +12303,25 @@ set @year_cnt = datediff(year, @start_date, getdate())
 while @cont_num > 0
 begin
   set @customer_id = (select top 1 customer_id from dbo.customers order by newid() desc)
-  set @contract_value = (select cast(rand() * 100000 as decimal(18,0)))
-  set @interest_rate = (select cast(rand() * 10 as decimal(6,4)))
+  set @contract_value = (select cast(dbo.fn_random_num(100000) as decimal(18,0)))
+  set @interest_rate = (select cast(dbo.fn_random_num(10) as decimal(6,4)))
 
-  set @entered_year = (select year(@start_date) + rand() * (@year_cnt + 1))
-  set @entered_month = (select rand() * 12) + 1
-  set @entered_day = (select cast(rand() * 27 as int) + 1)
+  set @entered_year = (select year(@start_date) + dbo.fn_random_num(@year_cnt))
+  set @entered_month = dbo.fn_random_num(12)
+  set @entered_day = dbo.fn_random_num(27)
   set @entered_date = cast(format(@entered_year, '0000') + format(@entered_month, '00') + format(@entered_day, '00') as date)
   set @contract_number = format(@id, '000000') + '/' + format(@entered_date, 'yy')
   set @description = 'Contract #' + @contract_number
 
-  set @activation_date = dateadd(day, rand() * 30, @entered_date)
+  set @activation_date = dateadd(day, dbo.fn_random_num(30), @entered_date)
   set @activation_date = iif(rand() * 1.3 <= 1, @activation_date, null)
 
-  set @duration = (select cast(rand() * 7 as int) * 12)
+  set @duration = (dbo.fn_random_num(7) * 12)
   set @duration = iif(@duration < 36, 36, @duration)
   set @employee_id = (select top 1 employee_id from dbo.employees order by newid())
   set @activity_status = iif(@activation_date is not null, 'active', 'inactive')
   set @activity_status = iif(dateadd(month, @duration, @activation_date) <= cast(getdate() as date), 'closed', @activity_status)
-  set @tax_rate = iif((select rand() * 10) < 1, 10, 20)
+  set @tax_rate = iif(selectdbo.fn_random_num(10) < 1, 10, 20)
 
   insert into #contracts
     (contract_number, customer_id, description, contract_value, tax_value, interest_rate, currency_code, tax_rate, activity_status, entered_date, activation_date, duration, employee_id, ts)
@@ -12250,6 +12366,8 @@ select * from #contracts where contract_number like '%3693%'
 
 
 --#region amortisation_plan
+
+raiserror('Processing amortisation_plan', 0, 1) with nowait
 
 delete from dbo.amort_plan
 go
@@ -12427,6 +12545,8 @@ go
 
 --#region invoices
 
+raiserror('Processing invoices', 0, 1) with nowait
+
 delete from dbo.invoices
 go
 
@@ -12463,6 +12583,8 @@ go
 
 
 --#region payments
+
+raiserror('Processing payments', 0, 1) with nowait
 
 delete from dbo.payments
 go
