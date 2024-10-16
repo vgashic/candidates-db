@@ -24,6 +24,12 @@ delete from dbo.countries
 delete from dbo.admin_settings
 go
 
+if (select top 1 last_value from sys.identity_columns where object_name(object_id) = 'admin_settings') is null
+  dbcc checkident(admin_settings, reseed, 1)
+else
+  dbcc checkident(admin_settings, reseed, 0)
+go
+
 insert into dbo.admin_settings
   (code, description, val_string, val_int, val_decimal, val_datetime, val_bit)
 select
@@ -69,7 +75,10 @@ go
 delete from dbo.employees
 go
 
-dbcc checkident(employees, reseed, 0)
+if (select top 1 last_value from sys.identity_columns where object_name(object_id) = 'employees') is null
+  dbcc checkident(employees, reseed, 1)
+else
+  dbcc checkident(employees, reseed, 0)
 go
 
 set nocount on
@@ -144,8 +153,16 @@ delete from dbo.employees_departments
 delete from dbo.departments
 go
 
-dbcc checkident(departments, reseed, 0)
-dbcc checkident(employees_departments, reseed, 0)
+if (select top 1 last_value from sys.identity_columns where object_name(object_id) = 'employees_departments') is null
+  dbcc checkident(employees_departments, reseed, 1)
+else
+  dbcc checkident(employees_departments, reseed, 0)
+go
+
+if (select top 1 last_value from sys.identity_columns where object_name(object_id) = 'employees') is null
+  dbcc checkident(employees, reseed, 1)
+else
+  dbcc checkident(employees, reseed, 0)
 go
 
 set nocount on
@@ -11870,7 +11887,10 @@ go
 delete from dbo.customers
 go
 
-dbcc checkident(customers, reseed, 0)
+if (select top 1 last_value from sys.identity_columns where object_name(object_id) = 'customers') is null
+  dbcc checkident(customers, reseed, 1)
+else
+  dbcc checkident(customers, reseed, 0)
 go
 
 insert into dbo.customers
@@ -12122,7 +12142,10 @@ go
 delete from dbo.contracts
 go
 
-dbcc checkident(contracts, reseed, 0)
+if (select top 1 last_value from sys.identity_columns where object_name(object_id) = 'contracts') is null
+  dbcc checkident(contracts, reseed, 1)
+else
+  dbcc checkident(contracts, reseed, 0)
 go
 
 set nocount on
@@ -12407,7 +12430,10 @@ go
 delete from dbo.invoices
 go
 
-dbcc checkident(invoices, reseed, 0)
+if (select top 1 last_value from sys.identity_columns where object_name(object_id) = 'invoices') is null
+  dbcc checkident(invoices, reseed, 1)
+else
+  dbcc checkident(invoices, reseed, 0)
 go
 
 insert into dbo.invoices
@@ -12441,7 +12467,10 @@ go
 delete from dbo.payments
 go
 
-dbcc checkident(payments, reseed, 0)
+if (select top 1 last_value from sys.identity_columns where object_name(object_id) = 'payments') is null
+  dbcc checkident(payments, reseed, 1)
+else
+  dbcc checkident(payments, reseed, 0)
 go
 
 insert into dbo.payments

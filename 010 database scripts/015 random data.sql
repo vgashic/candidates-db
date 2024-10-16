@@ -1,3 +1,6 @@
+use candidates
+go
+
 truncate table _rnd_companies
 truncate table _rnd_names
 truncate table _rnd_streets
