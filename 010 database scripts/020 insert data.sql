@@ -11925,7 +11925,7 @@ from dbo.customers
 go
 
 
-
+raiserror('Adding real companies', 0, 1) with nowait
 insert into #customers
   (short_name, full_name, registration_number, tax_number, street, postal_code, country_code, email, customer_type, inactive)
 select
@@ -12094,7 +12094,8 @@ declare
   @postal_code varchar(10),
   @country_code varchar(10),
   @email varchar(500),
-  @inactive bit = 0
+  @inactive bit = 0,
+  @message varchar(1000)
 
 set @co_cnt = @co_cnt - @co_cnt_ex
 
@@ -12120,6 +12121,9 @@ begin
     set @inactive = 1
   else
     set @inactive = 0
+
+  set @message = 'Adding company ' + @co_name + '; ' + cast(@co_cnt as varchar(100)) + ' more.'
+  raiserror(@message, 0, 1) with nowait
 
   insert into #customers
     (short_name, full_name, registration_number, tax_number, street, postal_code, country_code, email, customer_type, inactive)
@@ -12148,7 +12152,8 @@ declare
   @postal_code varchar(10),
   @country_code varchar(10),
   @email varchar(500),
-  @inactive bit = 0
+  @inactive bit = 0,
+  @message varchar(1000)
 
 set @p_cnt = @p_cnt - @p_cnt_ex
 
@@ -12177,6 +12182,9 @@ begin
     set @inactive = 1
   else
     set @inactive = 0
+
+  set @message = 'Adding company ' + @p_fullname + '; ' + cast(@p_cnt as varchar(100)) + ' more.'
+  raiserror(@message, 0, 1) with nowait
 
   insert into #customers
     (short_name, full_name, registration_number, tax_number, street, postal_code, country_code, email, customer_type, inactive)
