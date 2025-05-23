@@ -10,7 +10,7 @@ go
 
 create view v_rand
 as
-	select checksum(newid()) as rnd
+  select checksum(newid()) as rnd
 go
 
 --#endregion v_rand
